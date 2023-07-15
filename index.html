@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Chat Application</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .custom-text{
+            width: 50%;
+            float: left;
+            background-color: lightblue
+        }
+        .chat-container {
+            width: 50%;
+            float: left;
+            margin: 0 auto;
+            padding: 20px;
+            border: 1px solid #ccc;
+        }
+        .message {
+            margin-bottom: 10px;
+        }
+        .user-message {
+            text-align: left;
+            color: blue;
+        }
+        .model-message {
+            text-align: right;
+            color: green;
+        }
+        .input-container {
+            margin-top: 20px;
+        }
+        #url-input {
+            width: 500px;
+        }
+        .input-text {
+            width: 100%;
+            height: 300px;
+            padding: 5px;
+        }
+        
+        .message-input {
+            width: 80%;
+            padding: 5px;
+        }
+        .send-button {
+            width: 18%;
+            padding: 5px;
+        }
+        .option-container {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .option-container label {
+            margin-right: 10px;
+        }
+        .option-container select {
+            width: 60%;
+            padding: 5px;
+        }
+        
+    </style>
+</head>
+<body>
+    <div class="custom-text">
+        <input type="text" id="url-input" placeholder="Enter URL">
+        <button type="button" id="extract-button">Extract Text</button>
+        <textarea id="additional-text" class="input-text" placeholder="Enter or paste text here..."></textarea>
+    </div>
+    <div class="chat-container">
+        <div class="message">
+            <div class="model-message">Hello! How can I assist you today?</div>
+        </div>
+
+        <!-- Selection options -->
+        <div class="option-container">
+            <label>Select option:</label>
+            <select name="select-option" id="select-option" style="float: left;">
+                <option value="input_text">Query by input text</option>
+                <option value="chatgpt">Query by ChatGPT</option>
+                <option value="diabetes">Query by Diabetes Content</option>
+                <option value="cdc_diabetes">Query by CDC Diabetes</option>
+                
+            </select>
+        </div>
+
+        <div id="conversation"></div>
+        <div class="input-container">
+            
+            <input type="text" id="message-input" class="message-input" placeholder="Type your message here...">
+            <button type="button" id="send-button" class="send-button">Send</button>
+        </div>
+
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var conversation = document.getElementById('conversation');
+            var messageInput = document.getElementById('message-input');
+            var sendButton = document.getElementById('send-button');
+            var selectOption = document.getElementById('select-option');
+            var additionalText = document.getElementById('additional-text');
+            var urlInput = document.getElementById('url-input');
+            var extractButton = document.getElementById('extract-button');
+            
+            // Event listener for select option change
+            selectOption.addEventListener('change', function() {
+                updateSelectOption();
+            });
+        
+            sendButton.addEventListener('click', function() {
+                var message = messageInput.value.trim();
+                var additionalTextValue = additionalText.value.trim(); // Get the content of additional-text
+                if (message !== '') {
+                    sendMessage(message, additionalTextValue); // Pass additionalTextValue to sendMessage function
+                    messageInput.value = '';
+                }
+            });
+
+            extractButton.addEventListener('click', function() {
+                var url = urlInput.value.trim();
+                if (url !== '') {
+                    extractTextFromURL(url);
+                }
+            });
+
+            function updateSelectOption() {
+                selectOption = document.getElementById('select-option');
+            }
+        
+            // Send message when Enter key is pressed
+            messageInput.addEventListener('keydown', function(event) {
+                if (event.key === 'Enter') {
+                    var message = messageInput.value.trim();
+                    var additionalTextValue = additionalText.value.trim(); // Get the content of additional-text
+                    if (message !== '') {
+                        sendMessage(message, additionalTextValue); // Pass additionalTextValue to sendMessage function
+                        messageInput.value = '';
+                    }
+                }
+            });
+
+            function extractTextFromURL(url) {
+                fetch('/extract?url=' + encodeURIComponent(url))
+                    .then(response => {
+                        if (response.ok) {
+                            return response.text();
+                        } else {
+                            throw new Error('Error: ' + response.status);
+                        }
+                    })
+                    .then(data => {
+                        additionalText.value = data;
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                    });
+            }
+
+            function sendMessage(message, additionalTextValue) {
+                var messageContainer = document.createElement('div');
+                messageContainer.className = 'message user-message';
+                messageContainer.textContent = message;
+                conversation.appendChild(messageContainer);
+                conversation.scrollTop = conversation.scrollHeight;
+        
+                // Modify the body to include both message, select-option, and additional-text fields
+                var body = 'message=' + encodeURIComponent(message);
+                body += '&select-option=' + encodeURIComponent(selectOption.value);
+                body += '&additional-text=' + encodeURIComponent(additionalTextValue); // Add additional-text field
+        
+                fetch('/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: body
+                })
+                .then(response => response.json())
+                .then(data => {
+                    var modelMessageContainer = document.createElement('div');
+                    modelMessageContainer.className = 'message model-message';
+                    modelMessageContainer.textContent = data.message;
+                    conversation.appendChild(modelMessageContainer);
+                    conversation.scrollTop = conversation.scrollHeight;
+        
+                    // Update the additional text value after receiving the response
+                    additionalText.value = additionalTextValue;
+                })
+                .catch(error => console.log(error));
+            }
+        });
+    </script>
+</body>
+</html>
