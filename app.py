@@ -183,7 +183,7 @@ def response_from_pinecone_index(input_text):
 def query_cdc_2(endpoint_url, input_text):
 
     headers = {
-        'Authorization': 'Bearer 64b0183a0e20777e4600050a',
+        'Authorization': 'Bearer ***',
         'Content-Type': 'application/json'
     }
     queries = [
